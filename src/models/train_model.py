@@ -7,9 +7,10 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, LinearRegression
 import joblib
 import matplotlib.pyplot as plt
+from dvclive import Live
 
 
 @click.command()
@@ -19,32 +20,42 @@ def main(input_filepath, output_filepath):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    logger = logging.getLogger(__name__)
-    
-    df_transformed = pd.read_csv(input_filepath)
-    
-    features = list(df_transformed.columns)
-    features.remove('Price')
+    with Live() as live:
 
-    X = df_transformed[features]
-    y = df_transformed['Price']
+        logger = logging.getLogger(__name__)
+        
+        df_transformed = pd.read_csv(input_filepath)
+        
+        features = list(df_transformed.columns)
+        features.remove('Price')
 
-    X_train, X_test, y_train, y_test = train_test_split(X.values, y.values, test_size=0.3, random_state=42)
+        X = df_transformed[features]
+        y = df_transformed['Price']
 
-    model = Ridge()
-    model.fit(X_train, y_train)
+        X_train, X_test, y_train, y_test = train_test_split(X.values, y.values, test_size=0.3, random_state=42)
 
-    predictions = model.predict(X_test)
-    mse = mean_squared_error(y_test, predictions)
-    mae = mean_absolute_error(y_test, predictions)
-    r2 = r2_score(y_test, predictions)
+        model = LinearRegression()
+        model.fit(X_train, y_train)
 
-    plt.scatter(y_test, predictions)
-    plt.savefig('./reports/figures/true_vs_prediction.png', dpi=88)
+        predictions = model.predict(X_test)
+        mse = mean_squared_error(y_test, predictions)
+        mae = mean_absolute_error(y_test, predictions)
+        r2 = r2_score(y_test, predictions)
 
-    joblib.dump(model, output_filepath)
+        live.log_metric('mse', mse, timestamp=True, plot=True)
+        live.log_metric('mae', mae, timestamp=True, plot=True)
+        live.log_metric('r2', r2, timestamp=True, plot=True)
 
-    logger.info('processo concluído')
+        plt.scatter(y_test, predictions)
+        plt.savefig('./reports/figures/true_vs_prediction.png', dpi=88)
+
+        joblib.dump(model, output_filepath)
+
+        live.log_artifact(output_filepath, type='model', name='laptop-pricing', desc='Modelo de predição de preço de laptop', labels=['regressão'] )
+
+        logger.info('processo concluído')
+
+
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
