@@ -9,6 +9,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Ridge
 import joblib
+import matplotlib.pyplot as plt
 
 
 @click.command()
@@ -37,6 +38,9 @@ def main(input_filepath, output_filepath):
     mse = mean_squared_error(y_test, predictions)
     mae = mean_absolute_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
+
+    plt.scatter(y_test, predictions)
+    plt.savefig('./reports/figures/true_vs_prediction.png', dpi=88)
 
     joblib.dump(model, output_filepath)
 
